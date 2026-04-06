@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Environment files
+.env
+.env.local
+.env.production
+
+.env.development
+
+# Build output
+frontend/build/
+dist/
+
+# Uploads (user content - store in cloud storage in production)
+backend/uploads/images/
+backend/uploads/videos/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
