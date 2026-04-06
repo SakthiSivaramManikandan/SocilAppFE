@@ -1,15 +1,16 @@
-import React, { useState, useEffect, useRef } from 'react';
+
+
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import API from '../../utils/api';
 import toast from 'react-hot-toast';
 import { FiPlus, FiX, FiChevronLeft, FiChevronRight, FiTrash2 } from 'react-icons/fi';
-
 import { mediaUrl } from '../../utils/media';
 
 const StoriesBar = () => {
   const { user } = useAuth();
   const [groups, setGroups] = useState([]);
-  const [viewing, setViewing] = useState(null); // { groupIdx, storyIdx }
+  const [viewing, setViewing] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
   const [storyFile, setStoryFile] = useState(null);
   const [storyPreview, setStoryPreview] = useState(null);
@@ -22,14 +23,7 @@ const StoriesBar = () => {
     API.get('/stories/feed').then(({ data }) => setGroups(data)).catch(() => {});
   }, []);
 
-  useEffect(() => {
-    if (viewing !== null) {
-      timerRef.current = setTimeout(() => advanceStory(), 5000);
-      return () => clearTimeout(timerRef.current);
-    }
-  }, [viewing]);
-
-  const advanceStory = () => {
+  const advanceStory = useCallback(() => {
     if (!viewing) return;
     const group = groups[viewing.groupIdx];
     if (viewing.storyIdx < group.stories.length - 1) {
@@ -39,7 +33,14 @@ const StoriesBar = () => {
     } else {
       setViewing(null);
     }
-  };
+  }, [viewing, groups]);
+
+  useEffect(() => {
+    if (viewing !== null) {
+      timerRef.current = setTimeout(() => advanceStory(), 5000);
+      return () => clearTimeout(timerRef.current);
+    }
+  }, [viewing, advanceStory]);
 
   const handleFileSelect = (e) => {
     const f = e.target.files[0];
@@ -60,7 +61,6 @@ const StoriesBar = () => {
       const { data } = await API.post('/stories', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
       toast.success('Story posted!');
       setShowCreate(false); setStoryFile(null); setStoryPreview(null); setStoryText('');
-      // Prepend to groups
       const myGroup = groups.find(g => g.author._id === user?._id);
       if (myGroup) {
         setGroups(gs => gs.map(g => g.author._id === user?._id ? { ...g, stories: [data, ...g.stories] } : g));
@@ -85,10 +85,8 @@ const StoriesBar = () => {
 
   return (
     <>
-      {/* Stories scroll bar */}
       <div className="card p-4">
         <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide">
-          {/* Add Story */}
           <div className="flex flex-col items-center gap-1.5 flex-shrink-0 cursor-pointer" onClick={() => setShowCreate(true)}>
             <div className="w-14 h-14 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50 hover:bg-blue-50 hover:border-blue-400 transition-colors">
               <FiPlus size={20} className="text-gray-400" />
@@ -113,11 +111,9 @@ const StoriesBar = () => {
         </div>
       </div>
 
-      {/* Story Viewer */}
       {viewing !== null && currentStory && (
         <div className="fixed inset-0 z-50 bg-black flex items-center justify-center" onClick={() => setViewing(null)}>
           <div className="relative w-full max-w-sm h-full max-h-screen" onClick={e => e.stopPropagation()}>
-            {/* Progress bars */}
             <div className="absolute top-4 left-4 right-4 z-10 flex gap-1">
               {groups[viewing.groupIdx].stories.map((_, i) => (
                 <div key={i} className="flex-1 h-0.5 rounded-full bg-white bg-opacity-40 overflow-hidden">
@@ -126,7 +122,6 @@ const StoriesBar = () => {
               ))}
             </div>
 
-            {/* Header */}
             <div className="absolute top-8 left-4 right-4 z-10 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 {currentAuthor?.profilePicture
@@ -145,7 +140,6 @@ const StoriesBar = () => {
               </div>
             </div>
 
-            {/* Media */}
             <div className="w-full h-full bg-gray-900 flex items-center justify-center">
               {currentStory.media.type === 'image'
                 ? <img src={mediaUrl(currentStory.media.url)} alt="" className="w-full h-full object-contain" />
@@ -158,7 +152,6 @@ const StoriesBar = () => {
               )}
             </div>
 
-            {/* Nav */}
             <button onClick={(e) => { e.stopPropagation(); viewing.storyIdx > 0 ? setViewing(v => ({ ...v, storyIdx: v.storyIdx - 1 })) : viewing.groupIdx > 0 && setViewing({ groupIdx: viewing.groupIdx - 1, storyIdx: 0 }); }}
               className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black bg-opacity-30 text-white hover:bg-opacity-50">
               <FiChevronLeft size={20} />
@@ -171,7 +164,6 @@ const StoriesBar = () => {
         </div>
       )}
 
-      {/* Create Story Modal */}
       {showCreate && (
         <div className="fixed inset-0 z-50 bg-black bg-opacity-70 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden">
